@@ -1,50 +1,367 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MySQL demo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mehmonlar Daftari — TiDB & Netlify</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
-    input { padding: 8px; width: 60%; }
-    button { padding: 8px 14px; }
-    li { margin: 6px 0; }
-    small { color: #666; }
+    :root {
+      --bg-1: #0b1020;
+      --bg-2: #131c36;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.14);
+      --text: #f3f6ff;
+      --muted: #a6b1d0;
+      --accent: #38bdf8;
+      --accent-2: #818cf8;
+      --success: #34d399;
+      --danger: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.18), transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(129, 140, 248, 0.20), transparent 45%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      padding: 36px 16px 64px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(9, 14, 28, 0.72);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #07111f;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .status.err {
+      color: var(--danger);
+    }
+
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .list-header h2 {
+      font-size: 18px;
+    }
+
+    .count-pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+    }
+
+    .entries {
+      display: grid;
+      gap: 12px;
+    }
+
+    .entry {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(10, 15, 30, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .entry-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .entry-name {
+      font-weight: 700;
+      color: #bae6fd;
+    }
+
+    .entry-time {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .entry-msg {
+      color: var(--text);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px 12px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <h1>Ismingizni qoldiring</h1>
-  <input id="name" placeholder="Ism" maxlength="100">
-  <button onclick="add()">Saqlash</button>
-  <ul id="list"></ul>
+  <div class="container">
+    <div class="header">
+      <div class="badge">GitHub • TiDB Cloud • Netlify</div>
+      <h1>Do‘stlar va Mehmonlar Daftari</h1>
+      <p class="subtitle">Ismingizni va fikr yoki tilagingizni qoldiring — yozuvlar bazada saqlanadi.</p>
+    </div>
 
-<script>
-const API = "/.netlify/functions/api";
+    <div class="panel">
+      <form id="guestForm" class="form-grid">
+        <div>
+          <label for="nameInput">Ismingiz</label>
+          <input id="nameInput" name="name" type="text" maxlength="60" placeholder="Masalan: Jasur" required />
+        </div>
+        <div>
+          <label for="messageInput">Xabar yoki fikr</label>
+          <textarea id="messageInput" name="message" maxlength="400" placeholder="Salom! Sayt zo‘r chiqibdi..." required></textarea>
+        </div>
+        <div class="actions">
+          <button id="submitBtn" type="submit">Saqlash</button>
+          <div id="statusMsg" class="status"></div>
+        </div>
+      </form>
+    </div>
 
-async function load() {
-  const rows = await (await fetch(API)).json();
-  const ul = document.getElementById("list");
-  ul.innerHTML = "";
-  rows.forEach(r => {
-    const li = document.createElement("li");
-    li.textContent = r.name + " ";
-    const s = document.createElement("small");
-    s.textContent = "(" + new Date(r.created_at).toLocaleString() + ")";
-    li.appendChild(s);
-    ul.appendChild(li);
-  });
-}
+    <div class="panel">
+      <div class="list-header">
+        <h2>Qoldirilgan xabarlar</h2>
+        <span id="countBadge" class="count-pill">0 ta</span>
+      </div>
+      <div id="entriesList" class="entries">
+        <div class="empty">Yuklanmoqda...</div>
+      </div>
+    </div>
+  </div>
 
-async function add() {
-  const input = document.getElementById("name");
-  const name = input.value.trim();
-  if (!name) return;
-  await fetch(API, { method: "POST", body: JSON.stringify({ name }) });
-  input.value = "";
-  load();
-}
+  <script>
+    const API = "/.netlify/functions/api";
+    const form = document.getElementById("guestForm");
+    const nameInput = document.getElementById("nameInput");
+    const messageInput = document.getElementById("messageInput");
+    const submitBtn = document.getElementById("submitBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    const entriesList = document.getElementById("entriesList");
+    const countBadge = document.getElementById("countBadge");
 
-load();
-</script>
+    function setStatus(text, type = "") {
+      statusMsg.textContent = text;
+      statusMsg.className = `status ${type}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatDate(raw) {
+      if (!raw) return "";
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return String(raw);
+      return d.toLocaleString("uz-UZ");
+    }
+
+    function renderEntries(items) {
+      const list = Array.isArray(items) ? items : [];
+      countBadge.textContent = `${list.length} ta`;
+
+      if (!list.length) {
+        entriesList.innerHTML = `<div class="empty">Hali xabarlar yo‘q. Birinchi bo‘lib yozib qoldiring!</div>`;
+        return;
+      }
+
+      entriesList.innerHTML = list.map((item) => {
+        const name = escapeHtml(item.name || item.ism || "Mehmon");
+        const message = escapeHtml(item.message || item.xabar || "");
+        const time = escapeHtml(formatDate(item.created_at || item.createdAt || ""));
+        return `
+          <article class="entry">
+            <div class="entry-top">
+              <span class="entry-name">${name}</span>
+              <span class="entry-time">${time}</span>
+            </div>
+            <p class="entry-msg">${message || "Xabar qoldirilgan."}</p>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function loadEntries() {
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const rows = Array.isArray(data) ? data : (data.entries || data.data || data.rows || []);
+        renderEntries(rows);
+      } catch (err) {
+        entriesList.innerHTML = `<div class="empty">Ma’lumotlarni yuklashda xatolik: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const message = messageInput.value.trim();
+
+      if (!name || !message) {
+        setStatus("Ism va xabarni to‘liq kiriting.", "err");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      setStatus("Bazaga saqlanmoqda...", "");
+
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, message })
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || `HTTP ${res.status}`);
+        }
+        nameInput.value = "";
+        messageInput.value = "";
+        setStatus("Xabar muvaffaqiyatli saqlandi!", "ok");
+        await loadEntries();
+      } catch (err) {
+        setStatus(`Xatolik: ${err.message}`, "err");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    loadEntries();
+  </script>
 </body>
 </html>
